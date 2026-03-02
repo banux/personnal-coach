@@ -14,7 +14,7 @@
 - [ ] Add error handling and validation (input sanitization)
 - [x] Implement core business logic (Claude SDK integration)
 - [x] Add configuration management (env vars: ANTHROPIC_API_KEY, APP_PASSWORD, PORT)
-- [ ] Create user documentation (README.md)
+- [x] Create user documentation (README.md)
 
 ## Low Priority
 - [ ] Performance optimization
@@ -38,10 +38,10 @@
 - [x] SQLite persistence: database package with auto-migrations (modernc.org/sqlite, CGO-free)
 - [x] DB tests: 6 passing tests for CRUD + migration idempotency
 - [x] v1.2.0 released
-
-## Next Steps
-1. Write README.md with setup and usage instructions
-2. Add person history view to frontend (list all past programs)
+- [x] README.md: full documentation (quickstart, API, MCP, Docker, dev)
+- [x] Programs history view (/programs): list all past programs with PDF link
+- [x] Navigation updated: Historique / Nouveau / Déconnexion
+- [x] v1.3.0 released
 
 ## Notes
 - Go env: GOROOT=/home/banux/go, GOPATH=/home/banux/go (same dir, expected warning)
@@ -50,4 +50,4 @@
 - Tests: cd backend && GOROOT=/home/banux/go GOPATH=/home/banux/go go test ./database/...
 - Docker: docker-compose up -d (requires ANTHROPIC_API_KEY in .env)
 - DATA_DIR env var controls SQLite file location (default: ./data/coach.db)
-- Version: 1.2.0
+- Version: 1.3.0

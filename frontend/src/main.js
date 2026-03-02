@@ -6,12 +6,14 @@ import App from './App.vue'
 import LoginView from './views/LoginView.vue'
 import HomeView from './views/HomeView.vue'
 import ProgramView from './views/ProgramView.vue'
+import ProgramsListView from './views/ProgramsListView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', component: LoginView, meta: { public: true } },
     { path: '/', component: HomeView },
+    { path: '/programs', component: ProgramsListView },
     { path: '/program/:id', component: ProgramView, props: true },
   ]
 })
