@@ -1,49 +1,136 @@
 # Agent Build Instructions
 
-## Project Setup
+## Project Overview
+Personal Coach AI - Generates personalized workout programs using Claude AI.
+- **Backend**: Go (Gin framework) on port 8080
+- **Frontend**: VueJS + Tailwind CSS (Vite) on port 5173
+- **MCP Server**: Integrated in Go binary (pass `mcp` arg)
+
+## Environment Setup
+
+### Critical Go Environment
+The Go installation uses a non-standard path. Always use these env vars:
 ```bash
-# Install dependencies (example for Node.js project)
-npm install
-
-# Or for Python project
-pip install -r requirements.txt
-
-# Or for Rust project  
-cargo build
+export GOROOT=/home/banux/go
+export GOPATH=/home/banux/go
+export GOPROXY=direct
+export GONOSUMDB="*"
 ```
 
-## Running Tests
+### Required Environment Variables
 ```bash
-# Node.js
-npm test
+export ANTHROPIC_API_KEY="your-api-key-here"
+```
 
-# Python
-pytest
+## Running the Backend
 
-# Rust
-cargo test
+```bash
+cd /home/banux/personal-coach/backend
+
+# Development
+GOROOT=/home/banux/go GOPATH=/home/banux/go ANTHROPIC_API_KEY=your-key go run main.go
+
+# Build
+GOROOT=/home/banux/go GOPATH=/home/banux/go go build -o ../dist/personal-coach .
+
+# Run MCP server mode
+ANTHROPIC_API_KEY=your-key ./personal-coach mcp
+```
+
+## Running the Frontend
+
+```bash
+cd /home/banux/personal-coach/frontend
+
+# Development (hot reload)
+npm run dev
+
+# Production build
+npm run build
+
+# Preview production build
+npm run preview
 ```
 
 ## Build Commands
+
 ```bash
-# Production build
-npm run build
-# or
-cargo build --release
+# Build backend
+cd backend && GOROOT=/home/banux/go GOPATH=/home/banux/go go build ./...
+
+# Build frontend
+cd frontend && npm run build
+
+# Build all
+cd backend && GOROOT=/home/banux/go GOPATH=/home/banux/go go build ./... && cd ../frontend && npm run build
 ```
 
-## Development Server
+## Running Tests
+
 ```bash
-# Start development server
-npm run dev
-# or
-cargo run
+# Backend tests (when written)
+cd backend && GOROOT=/home/banux/go GOPATH=/home/banux/go go test ./...
+
+# Frontend tests (when written)
+cd frontend && npm test
 ```
+
+## Project Structure
+
+```
+personal-coach/
+├── backend/
+│   ├── main.go              # Entry point (HTTP or MCP server)
+│   ├── go.mod
+│   ├── handlers/
+│   │   └── program.go       # REST API handlers
+│   ├── models/
+│   │   └── models.go        # Data structures
+│   ├── services/
+│   │   ├── claude.go        # Claude AI integration
+│   │   ├── pdf.go           # PDF generation
+│   │   └── timer.go         # Timer sequence builder
+│   └── mcp/
+│       └── server.go        # MCP server (stdio transport)
+└── frontend/
+    ├── src/
+    │   ├── App.vue           # Root component (nav + router)
+    │   ├── main.js           # App bootstrap (Pinia + Router)
+    │   ├── style.css         # Tailwind + custom components
+    │   ├── stores/
+    │   │   └── program.js    # Pinia store (API calls)
+    │   ├── views/
+    │   │   ├── HomeView.vue  # Form to create program
+    │   │   └── ProgramView.vue # Display program + timer
+    │   └── components/
+    │       └── TimerModal.vue # Workout timer modal
+    ├── package.json
+    └── vite.config.js
+```
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /api/programs/generate | Generate a new program via Claude |
+| GET | /api/programs | List all programs |
+| GET | /api/programs/:id | Get a specific program |
+| GET | /api/programs/:id/pdf | Download program as PDF |
+| GET | /api/programs/:id/timer/:day | Get timer for a day |
+| GET | /health | Health check |
+
+## MCP Tools
+
+- `generate_workout_program` - Generate personalized program
+- `get_workout_timer` - Build timer sequence from a program
 
 ## Key Learnings
-- Update this section when you learn new build optimizations
-- Document any gotchas or special setup requirements
-- Keep track of the fastest test/build cycle
+- Go GOROOT and GOPATH must both be set to `/home/banux/go`
+- Use GOPROXY=direct and GONOSUMDB="*" for dependency installation
+- Frontend API URL configurable via VITE_API_URL env var
+- gofpdf produces PDFs with structured tables (exercise per row)
+- Timer uses AudioContext for beep sounds in browser
+- MCP server uses JSON-RPC 2.0 over stdio
 
 ## Feature Development Quality Standards
 
@@ -53,106 +140,24 @@ cargo run
 
 - **Minimum Coverage**: 85% code coverage ratio required for all new code
 - **Test Pass Rate**: 100% - all tests must pass, no exceptions
-- **Test Types Required**:
-  - Unit tests for all business logic and services
-  - Integration tests for API endpoints or main functionality
-  - End-to-end tests for critical user workflows
-- **Coverage Validation**: Run coverage reports before marking features complete:
-  ```bash
-  # Examples by language/framework
-  npm run test:coverage
-  pytest --cov=src tests/ --cov-report=term-missing
-  cargo tarpaulin --out Html
-  ```
-- **Test Quality**: Tests must validate behavior, not just achieve coverage metrics
-- **Test Documentation**: Complex test scenarios must include comments explaining the test strategy
+- **Coverage Validation**: Run coverage reports before marking features complete
 
 ### Git Workflow Requirements
 
-Before moving to the next feature, ALL changes must be:
-
-1. **Committed with Clear Messages**:
-   ```bash
-   git add .
-   git commit -m "feat(module): descriptive message following conventional commits"
-   ```
-   - Use conventional commit format: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, etc.
-   - Include scope when applicable: `feat(api):`, `fix(ui):`, `test(auth):`
-   - Write descriptive messages that explain WHAT changed and WHY
-
-2. **Pushed to Remote Repository**:
-   ```bash
-   git push origin <branch-name>
-   ```
-   - Never leave completed features uncommitted
-   - Push regularly to maintain backup and enable collaboration
-   - Ensure CI/CD pipelines pass before considering feature complete
-
-3. **Branch Hygiene**:
-   - Work on feature branches, never directly on `main`
-   - Branch naming convention: `feature/<feature-name>`, `fix/<issue-name>`, `docs/<doc-update>`
-   - Create pull requests for all significant changes
-
-4. **Ralph Integration**:
-   - Update .ralph/fix_plan.md with new tasks before starting work
-   - Mark items complete in .ralph/fix_plan.md upon completion
-   - Update .ralph/PROMPT.md if development patterns change
-   - Test features work within Ralph's autonomous loop
-
-### Documentation Requirements
-
-**ALL implementation documentation MUST remain synchronized with the codebase**:
-
-1. **Code Documentation**:
-   - Language-appropriate documentation (JSDoc, docstrings, etc.)
-   - Update inline comments when implementation changes
-   - Remove outdated comments immediately
-
-2. **Implementation Documentation**:
-   - Update relevant sections in this AGENT.md file
-   - Keep build and test commands current
-   - Update configuration examples when defaults change
-   - Document breaking changes prominently
-
-3. **README Updates**:
-   - Keep feature lists current
-   - Update setup instructions when dependencies change
-   - Maintain accurate command examples
-   - Update version compatibility information
-
-4. **AGENT.md Maintenance**:
-   - Add new build patterns to relevant sections
-   - Update "Key Learnings" with new insights
-   - Keep command examples accurate and tested
-   - Document new testing patterns or quality gates
+Before moving to the next feature, ALL changes must be committed with clear messages:
+```bash
+git add .
+git commit -m "feat(module): descriptive message following conventional commits"
+```
 
 ### Feature Completion Checklist
 
 Before marking ANY feature as complete, verify:
 
-- [ ] All tests pass with appropriate framework command
+- [ ] All tests pass
 - [ ] Code coverage meets 85% minimum threshold
-- [ ] Coverage report reviewed for meaningful test quality
 - [ ] Code formatted according to project standards
-- [ ] Type checking passes (if applicable)
 - [ ] All changes committed with conventional commit messages
-- [ ] All commits pushed to remote repository
 - [ ] .ralph/fix_plan.md task marked as complete
 - [ ] Implementation documentation updated
-- [ ] Inline code comments updated or added
 - [ ] .ralph/AGENT.md updated (if new patterns introduced)
-- [ ] Breaking changes documented
-- [ ] Features tested within Ralph loop (if applicable)
-- [ ] CI/CD pipeline passes
-
-### Rationale
-
-These standards ensure:
-- **Quality**: High test coverage and pass rates prevent regressions
-- **Traceability**: Git commits and .ralph/fix_plan.md provide clear history of changes
-- **Maintainability**: Current documentation reduces onboarding time and prevents knowledge loss
-- **Collaboration**: Pushed changes enable team visibility and code review
-- **Reliability**: Consistent quality gates maintain production stability
-- **Automation**: Ralph integration ensures continuous development practices
-
-**Enforcement**: AI agents should automatically apply these standards to all feature development tasks without requiring explicit instruction for each task.
