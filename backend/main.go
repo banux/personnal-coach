@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"personal-coach/database"
 	"personal-coach/handlers"
 	"personal-coach/mcp"
 	"personal-coach/services"
@@ -30,9 +31,20 @@ func main() {
 }
 
 func runHTTPServer() {
-	// Initialize services
+	// Open SQLite database
+	dataDir := os.Getenv("DATA_DIR")
+	if dataDir == "" {
+		dataDir = "./data"
+	}
+	db, err := database.Open(dataDir)
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// Initialize services and handlers
 	claudeService := services.NewClaudeService()
-	programHandler := handlers.NewProgramHandler(claudeService)
+	programHandler := handlers.NewProgramHandler(claudeService, db)
 	authHandler := handlers.NewAuthHandler()
 
 	// Set up Gin router
@@ -48,7 +60,7 @@ func runHTTPServer() {
 
 	// Health check (no auth required)
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok", "service": "personal-coach", "version": "1.1.0"})
+		c.JSON(200, gin.H{"status": "ok", "service": "personal-coach", "version": "1.2.0"})
 	})
 
 	// Protected API routes
@@ -72,7 +84,7 @@ func runHTTPServer() {
 		port = "8080"
 	}
 
-	log.Printf("Personal Coach server starting on port %s", port)
+	log.Printf("Personal Coach server v1.2.0 starting on port %s", port)
 	log.Printf("Frontend: http://localhost:%s", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)

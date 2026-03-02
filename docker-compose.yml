@@ -14,6 +14,10 @@ services:
       - APP_PASSWORD=${APP_PASSWORD:-coach2024}
       # Optional: Server port (default: 8080)
       - PORT=${PORT:-8080}
+      # SQLite database directory (persisted via volume)
+      - DATA_DIR=/app/data
+    volumes:
+      - coach-data:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
@@ -36,3 +40,7 @@ services:
     command: ["./personal-coach", "mcp"]
     profiles:
       - mcp
+
+volumes:
+  coach-data:
+    driver: local

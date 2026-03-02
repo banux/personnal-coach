@@ -1,32 +1,28 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"personal-coach/database"
 	"personal-coach/models"
 	"personal-coach/services"
-)
-
-// In-memory store for programs (replace with DB in production)
-var (
-	programStore = make(map[string]models.Program)
-	storeMu      sync.RWMutex
 )
 
 // ProgramHandler handles workout program endpoints
 type ProgramHandler struct {
 	claude *services.ClaudeService
+	db     *database.DB
 }
 
 // NewProgramHandler creates a new program handler
-func NewProgramHandler(claude *services.ClaudeService) *ProgramHandler {
-	return &ProgramHandler{claude: claude}
+func NewProgramHandler(claude *services.ClaudeService, db *database.DB) *ProgramHandler {
+	return &ProgramHandler{claude: claude, db: db}
 }
 
 // GenerateProgram handles POST /api/programs/generate
@@ -37,39 +33,34 @@ func (h *ProgramHandler) GenerateProgram(c *gin.Context) {
 		return
 	}
 
-	// Validate required fields
 	if req.Person.Name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Person name is required"})
 		return
 	}
 	if req.DaysPerWeek < 1 || req.DaysPerWeek > 7 {
-		req.DaysPerWeek = 3 // default
+		req.DaysPerWeek = 3
 	}
 	if req.Weeks < 1 {
-		req.Weeks = 4 // default
+		req.Weeks = 4
 	}
-
-	// Assign IDs if not provided
 	if req.Person.ID == "" {
 		req.Person.ID = uuid.New().String()
 	}
 
-	// Generate program via Claude
 	program, err := h.claude.GenerateProgram(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to generate program: %v", err)})
 		return
 	}
 
-	// Assign program ID and metadata
 	program.ID = uuid.New().String()
 	program.PersonID = req.Person.ID
 	program.GeneratedAt = time.Now()
 
-	// Store program
-	storeMu.Lock()
-	programStore[program.ID] = *program
-	storeMu.Unlock()
+	if err := h.db.SaveProgram(*program); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to save program: %v", err)})
+		return
+	}
 
 	c.JSON(http.StatusOK, models.GenerateResponse{
 		Program: *program,
@@ -81,12 +72,13 @@ func (h *ProgramHandler) GenerateProgram(c *gin.Context) {
 func (h *ProgramHandler) GetProgram(c *gin.Context) {
 	id := c.Param("id")
 
-	storeMu.RLock()
-	program, exists := programStore[id]
-	storeMu.RUnlock()
-
-	if !exists {
+	program, err := h.db.GetProgram(id)
+	if errors.Is(err, database.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Programme non trouvé"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Database error: %v", err)})
 		return
 	}
 
@@ -97,16 +89,17 @@ func (h *ProgramHandler) GetProgram(c *gin.Context) {
 func (h *ProgramHandler) DownloadPDF(c *gin.Context) {
 	id := c.Param("id")
 
-	storeMu.RLock()
-	program, exists := programStore[id]
-	storeMu.RUnlock()
-
-	if !exists {
+	program, err := h.db.GetProgram(id)
+	if errors.Is(err, database.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Programme non trouvé"})
 		return
 	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Database error: %v", err)})
+		return
+	}
 
-	pdfBytes, err := services.GeneratePDF(program)
+	pdfBytes, err := services.GeneratePDF(*program)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Erreur PDF: %v", err)})
 		return
@@ -128,16 +121,17 @@ func (h *ProgramHandler) GetTimer(c *gin.Context) {
 		return
 	}
 
-	storeMu.RLock()
-	program, exists := programStore[id]
-	storeMu.RUnlock()
-
-	if !exists {
+	program, err := h.db.GetProgram(id)
+	if errors.Is(err, database.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Programme non trouvé"})
 		return
 	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Database error: %v", err)})
+		return
+	}
 
-	timer, err := services.BuildTimer(program, dayIndex)
+	timer, err := services.BuildTimer(*program, dayIndex)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -148,12 +142,13 @@ func (h *ProgramHandler) GetTimer(c *gin.Context) {
 
 // ListPrograms handles GET /api/programs
 func (h *ProgramHandler) ListPrograms(c *gin.Context) {
-	storeMu.RLock()
-	defer storeMu.RUnlock()
-
-	programs := make([]models.Program, 0, len(programStore))
-	for _, p := range programStore {
-		programs = append(programs, p)
+	programs, err := h.db.ListPrograms()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Database error: %v", err)})
+		return
+	}
+	if programs == nil {
+		programs = []models.Program{}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"programs": programs, "total": len(programs)})
