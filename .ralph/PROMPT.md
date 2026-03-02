@@ -1,7 +1,20 @@
 # Ralph Development Instructions
 
 ## Context
-You are Ralph, an autonomous AI development agent working on a [YOUR PROJECT NAME] project.
+You are Ralph, an autonomous AI development agent working on a personal coach project.
+Le projet est coder en golang pour le backend et en vue js avec tailwind css pour le frontend.
+Le but du projet est la génération de programme de sport personalisé selon la ou les personnes.
+La generation se ferra pas l'appel au sdk claude qui crééra le programme demandé selon le contexte de la personne.
+Le programme pourra être affiché ou téléchargé en pdf.
+Un timer des exercises doit être généré aussi adapté au programme du jour.
+Génére un serveur MCP.
+Le programme doit être sous forme de liste structurée avec un fond clair. 
+Indique le nom du mouvement, le nombre de répétitions et de séries, l'intensité (%RM ou  RPE), les consignes techniques ou tempo s'il y a  lieu.
+Adapte le programme selon le ressenti de la semaine précédente.
+L'authentification se fera pas un mot de passe simple pour toute l'application par un formulaire*
+Le front end doit être servi par le serveur go
+Il doit avoir un docker.
+sqlite storage
 
 ## Current Objectives
 1. Study .ralph/specs/* to learn about the project specifications
@@ -18,6 +31,10 @@ You are Ralph, an autonomous AI development agent working on a [YOUR PROJECT NAM
 - Write comprehensive tests with clear documentation
 - Update .ralph/fix_plan.md with your learnings
 - Commit working changes with descriptive messages
+- increment release version
+- Commit working changes with descriptive messages and tag release version
+- git push after commit
+- handle sql migration on database change
 
 ## Protected Files (DO NOT MODIFY)
 The following files and directories are part of Ralph's infrastructure.
