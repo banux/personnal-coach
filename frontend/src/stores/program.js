@@ -2,7 +2,11 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import axios from 'axios'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+// When served by Go, API is on same origin. Dev mode uses proxy or explicit URL.
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
+// All requests use credentials (cookie-based auth)
+const api = axios.create({ baseURL: API_BASE, withCredentials: true })
 
 export const useProgramStore = defineStore('program', () => {
   const currentProgram = ref(null)
@@ -15,7 +19,7 @@ export const useProgramStore = defineStore('program', () => {
     loading.value = true
     error.value = null
     try {
-      const res = await axios.post(`${API_BASE}/api/programs/generate`, formData)
+      const res = await api.post('/api/programs/generate', formData)
       currentProgram.value = res.data.program
       return res.data
     } catch (err) {
@@ -30,7 +34,7 @@ export const useProgramStore = defineStore('program', () => {
     loading.value = true
     error.value = null
     try {
-      const res = await axios.get(`${API_BASE}/api/programs/${id}`)
+      const res = await api.get(`/api/programs/${id}`)
       currentProgram.value = res.data
       return res.data
     } catch (err) {
@@ -45,7 +49,7 @@ export const useProgramStore = defineStore('program', () => {
     loading.value = true
     error.value = null
     try {
-      const res = await axios.get(`${API_BASE}/api/programs/${programId}/timer/${dayIndex}`)
+      const res = await api.get(`/api/programs/${programId}/timer/${dayIndex}`)
       timer.value = res.data
       return res.data
     } catch (err) {

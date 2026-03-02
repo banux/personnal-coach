@@ -45,3 +45,15 @@ target/
 
 # Ralph backup directories (created by migration)
 .ralph_backup_*
+
+# Environment secrets
+.env
+
+# Frontend build artifacts (embedded in Go binary)
+frontend/dist/
+backend/dist/
+
+# Go binary
+dist/
+personal-coach
+backend/personal-coach

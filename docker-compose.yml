@@ -1,0 +1,38 @@
+services:
+  personal-coach:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: personal-coach:latest
+    container_name: personal-coach
+    ports:
+      - "8080:8080"
+    environment:
+      # Required: Your Anthropic API key
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # Optional: App password (default: coach2024)
+      - APP_PASSWORD=${APP_PASSWORD:-coach2024}
+      # Optional: Server port (default: 8080)
+      - PORT=${PORT:-8080}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # MCP server variant (for use with Claude Desktop/Code)
+  personal-coach-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: personal-coach:latest
+    container_name: personal-coach-mcp
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    stdin_open: true
+    tty: false
+    command: ["./personal-coach", "mcp"]
+    profiles:
+      - mcp

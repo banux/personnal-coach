@@ -22,34 +22,66 @@ export GONOSUMDB="*"
 export ANTHROPIC_API_KEY="your-api-key-here"
 ```
 
+## Quick Start
+
+```bash
+# 1. Copy and configure env
+cp .env.example .env
+# Edit .env: set ANTHROPIC_API_KEY and APP_PASSWORD
+
+# 2. Full build (frontend + backend with embedded dist)
+./scripts/build.sh
+
+# 3. Run
+ANTHROPIC_API_KEY=your-key APP_PASSWORD=yourpassword ./personal-coach
+# Open http://localhost:8080
+```
+
+## Docker
+
+```bash
+# Build and run with docker-compose
+cp .env.example .env  # Set ANTHROPIC_API_KEY
+docker-compose up -d
+
+# Rebuild after code changes
+docker-compose up -d --build
+
+# Run MCP server (for Claude Desktop integration)
+docker-compose --profile mcp up personal-coach-mcp
+```
+
 ## Running the Backend
 
 ```bash
 cd /home/banux/personal-coach/backend
 
+# IMPORTANT: Copy frontend dist before running
+cp -r ../frontend/dist ./dist
+
 # Development
 GOROOT=/home/banux/go GOPATH=/home/banux/go ANTHROPIC_API_KEY=your-key go run main.go
 
-# Build
-GOROOT=/home/banux/go GOPATH=/home/banux/go go build -o ../dist/personal-coach .
+# Build binary
+GOROOT=/home/banux/go GOPATH=/home/banux/go go build -o ../personal-coach .
 
 # Run MCP server mode
 ANTHROPIC_API_KEY=your-key ./personal-coach mcp
 ```
 
-## Running the Frontend
+## Running the Frontend (dev only)
+
+The frontend is normally served by the Go server (embedded in binary).
+For development with hot-reload:
 
 ```bash
 cd /home/banux/personal-coach/frontend
 
-# Development (hot reload)
+# Development (hot reload) - connects to Go backend on :8080
 npm run dev
 
-# Production build
-npm run build
-
-# Preview production build
-npm run preview
+# Production build + copy to backend
+npm run build && cp -r dist ../backend/dist
 ```
 
 ## Build Commands
