@@ -11,6 +11,8 @@
 - [x] Create test framework and initial tests (14 tests: 6 DB + 8 timer service, all passing)
 - [x] On doit pouvoir remplir du contexte suplémentaire dans la description associé à la personne.
 - [x] Pour les equipements il faut pouvoir ajouter les types avec les poids associés et pouvoir en indiquer plusieurs.
+- [x] Ajoute le sexe de la personne
+- [x] Gére le multi utilisateur avec le même mot de passe d'authentification
 
 ## Medium Priority
 - [x] Add error handling and validation (handlers validate required fields + bounds)
@@ -55,5 +57,5 @@
 - Tests: cd backend && GOROOT=/home/banux/go GOPATH=/home/banux/go go test ./...
 - Docker: docker-compose up -d (requires ANTHROPIC_API_KEY in .env)
 - DATA_DIR env var controls SQLite file location (default: ./data/coach.db)
-- Version: 1.5.0
+- Version: 1.6.0
 - ALL REQUIREMENTS IMPLEMENTED — project complete

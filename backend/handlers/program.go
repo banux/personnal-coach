@@ -55,6 +55,7 @@ func (h *ProgramHandler) GenerateProgram(c *gin.Context) {
 
 	program.ID = uuid.New().String()
 	program.PersonID = req.Person.ID
+	program.ProfileID = c.GetString("profile_id")
 	program.GeneratedAt = time.Now()
 
 	if err := h.db.SaveProgram(*program); err != nil {
@@ -142,7 +143,8 @@ func (h *ProgramHandler) GetTimer(c *gin.Context) {
 
 // ListPrograms handles GET /api/programs
 func (h *ProgramHandler) ListPrograms(c *gin.Context) {
-	programs, err := h.db.ListPrograms()
+	profileID := c.GetString("profile_id")
+	programs, err := h.db.ListPrograms(profileID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Database error: %v", err)})
 		return

@@ -7,11 +7,13 @@ import LoginView from './views/LoginView.vue'
 import HomeView from './views/HomeView.vue'
 import ProgramView from './views/ProgramView.vue'
 import ProgramsListView from './views/ProgramsListView.vue'
+import ProfileSelectView from './views/ProfileSelectView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', component: LoginView, meta: { public: true } },
+    { path: '/profiles', component: ProfileSelectView, meta: { requiresProfile: false } },
     { path: '/', component: HomeView },
     { path: '/programs', component: ProgramsListView },
     { path: '/program/:id', component: ProgramView, props: true },
@@ -35,6 +37,12 @@ router.beforeEach(async (to) => {
   if (!authStore.authenticated) {
     return '/login'
   }
+
+  // After login, require profile selection unless on profile page
+  if (!authStore.profile && to.path !== '/profiles') {
+    return '/profiles'
+  }
+
   return true
 })
 

@@ -42,6 +42,15 @@
               <option value="advanced">Avancé</option>
             </select>
           </div>
+          <div>
+            <label class="label">Sexe <span class="text-gray-400 font-normal">(optionnel)</span></label>
+            <select v-model="form.person.sex" class="input-field">
+              <option value="">Non précisé</option>
+              <option value="homme">Homme</option>
+              <option value="femme">Femme</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
         </div>
 
         <!-- Additional context / description -->
@@ -181,6 +190,7 @@ const form = reactive({
     age: null,
     weight: null,
     height: null,
+    sex: '',
     level: 'intermediate',
     goals: [],
     equipment: ['bodyweight'],

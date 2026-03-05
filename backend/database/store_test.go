@@ -95,7 +95,7 @@ func TestListPrograms(t *testing.T) {
 	db := openTestDB(t)
 
 	// Empty list
-	programs, err := db.ListPrograms()
+	programs, err := db.ListPrograms("")
 	if err != nil {
 		t.Fatalf("list empty: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestListPrograms(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	programs, err = db.ListPrograms()
+	programs, err = db.ListPrograms("")
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}

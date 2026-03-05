@@ -1,13 +1,23 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Navigation (hide on login page) -->
-    <nav v-if="!isLoginPage" class="bg-white shadow-sm border-b border-gray-100">
+    <!-- Navigation (hide on login/profile pages) -->
+    <nav v-if="showNav" class="bg-white shadow-sm border-b border-gray-100">
       <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
         <router-link to="/" class="flex items-center space-x-2">
           <span class="text-2xl">💪</span>
           <span class="text-xl font-bold text-blue-700">Coach Personnel IA</span>
         </router-link>
         <div class="flex items-center gap-4">
+          <!-- Current profile badge -->
+          <div v-if="authStore.profile" class="flex items-center gap-2">
+            <span class="text-sm text-gray-500">👤 {{ authStore.profile.name }}</span>
+            <router-link
+              to="/profiles"
+              class="text-xs text-gray-400 hover:text-blue-600 transition-colors border border-gray-200 rounded px-2 py-0.5 hover:border-blue-300"
+            >
+              Changer
+            </router-link>
+          </div>
           <router-link
             to="/programs"
             class="text-sm text-gray-500 hover:text-blue-600 transition-colors"
@@ -33,7 +43,7 @@
     </nav>
 
     <!-- Main content -->
-    <main :class="isLoginPage ? '' : 'max-w-6xl mx-auto px-4 py-8'">
+    <main :class="showNav ? 'max-w-6xl mx-auto px-4 py-8' : ''">
       <router-view />
     </main>
   </div>
@@ -42,14 +52,13 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-
 import { useAuthStore } from './stores/auth.js'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const isLoginPage = computed(() => route.path === '/login')
+const showNav = computed(() => route.path !== '/login' && route.path !== '/profiles')
 
 async function handleLogout() {
   await authStore.logout()

@@ -71,7 +71,7 @@ func systemPrompt() string {
 RÈGLES IMPORTANTES:
 1. Réponds UNIQUEMENT avec du JSON valide, sans texte avant ou après
 2. Le JSON doit respecter exactement la structure demandée
-3. Adapte le programme selon le niveau, les objectifs, l'équipement disponible et le ressenti de la semaine précédente
+3. Adapte le programme selon le niveau, les objectifs, l'équipement disponible, le sexe (si fourni) et le ressenti de la semaine précédente
 4. Pour chaque exercice, indique:
    - Le nom précis du mouvement
    - Le nombre de séries et de répétitions
@@ -103,6 +103,10 @@ PROFIL:
 		req.Person.Level,
 		strings.Join(req.Person.Goals, ", "),
 	))
+
+	if req.Person.Sex != "" {
+		sb.WriteString(fmt.Sprintf("\n- Sexe: %s", req.Person.Sex))
+	}
 
 	// Equipment: use detailed items if available, else fall back to simple list
 	if len(req.Person.EquipmentItems) > 0 {

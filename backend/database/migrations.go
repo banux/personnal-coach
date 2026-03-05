@@ -34,6 +34,21 @@ CREATE INDEX IF NOT EXISTS idx_programs_person_name ON programs(person_name);
 CREATE INDEX IF NOT EXISTS idx_programs_created_at  ON programs(created_at DESC);
 `,
 	},
+	{
+		version: 2,
+		sql: `
+-- Profiles table: named users sharing the same app password
+CREATE TABLE IF NOT EXISTS profiles (
+	id         TEXT PRIMARY KEY,
+	name       TEXT NOT NULL UNIQUE,
+	created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Add profile_id to programs for per-user filtering
+ALTER TABLE programs ADD COLUMN profile_id TEXT NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS idx_programs_profile_id ON programs(profile_id);
+`,
+	},
 }
 
 // migrate applies all pending migrations using a simple version-tracking table.

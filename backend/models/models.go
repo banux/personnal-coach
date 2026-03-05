@@ -13,14 +13,22 @@ type Person struct {
 	ID             string          `json:"id"`
 	Name           string          `json:"name"`
 	Age            int             `json:"age"`
-	Weight         float64         `json:"weight"`    // kg
-	Height         float64         `json:"height"`    // cm
-	Level          string          `json:"level"`     // beginner, intermediate, advanced
-	Goals          []string        `json:"goals"`     // weight_loss, muscle_gain, endurance, etc.
+	Sex            string          `json:"sex,omitempty"`     // homme, femme, autre
+	Weight         float64         `json:"weight"`            // kg
+	Height         float64         `json:"height"`            // cm
+	Level          string          `json:"level"`             // beginner, intermediate, advanced
+	Goals          []string        `json:"goals"`             // weight_loss, muscle_gain, endurance, etc.
 	Equipment      []string        `json:"equipment,omitempty"` // backward compat: type names only
 	EquipmentItems []EquipmentItem `json:"equipment_items,omitempty"` // equipment with weight details
 	Description    string          `json:"description,omitempty"` // additional context (injuries, preferences, etc.)
 	CreatedAt      time.Time       `json:"created_at"`
+}
+
+// Profile represents a named user in the multi-user system (all share the same app password)
+type Profile struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // Exercise represents a single exercise in a workout
@@ -65,6 +73,7 @@ type WeeklyFeedback struct {
 // Program represents a complete workout program
 type Program struct {
 	ID          string         `json:"id"`
+	ProfileID   string         `json:"profile_id,omitempty"`
 	PersonID    string         `json:"person_id"`
 	PersonName  string         `json:"person_name"`
 	WeekNumber  int            `json:"week_number"`

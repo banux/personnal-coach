@@ -14,14 +14,21 @@ import (
 const sessionCookieName = "coach_session"
 const sessionDuration = 24 * time.Hour
 
+// sessionData holds per-session state
+type sessionData struct {
+	Expiry      time.Time
+	ProfileID   string
+	ProfileName string
+}
+
 // SessionStore manages active sessions in memory
 type SessionStore struct {
 	mu       sync.RWMutex
-	sessions map[string]time.Time
+	sessions map[string]*sessionData
 }
 
 var globalSessionStore = &SessionStore{
-	sessions: make(map[string]time.Time),
+	sessions: make(map[string]*sessionData),
 }
 
 // generateToken creates a random 32-byte hex token
@@ -37,18 +44,18 @@ func generateToken() (string, error) {
 func (s *SessionStore) Add(token string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.sessions[token] = time.Now().Add(sessionDuration)
+	s.sessions[token] = &sessionData{Expiry: time.Now().Add(sessionDuration)}
 }
 
 // Valid checks if a session token is valid and not expired
 func (s *SessionStore) Valid(token string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	exp, ok := s.sessions[token]
+	d, ok := s.sessions[token]
 	if !ok {
 		return false
 	}
-	return time.Now().Before(exp)
+	return time.Now().Before(d.Expiry)
 }
 
 // Delete removes a session
@@ -56,6 +63,26 @@ func (s *SessionStore) Delete(token string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.sessions, token)
+}
+
+// SetProfile associates a profile with a session
+func (s *SessionStore) SetProfile(token, profileID, profileName string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if d, ok := s.sessions[token]; ok {
+		d.ProfileID = profileID
+		d.ProfileName = profileName
+	}
+}
+
+// GetProfile returns the profile_id and profile_name for a session
+func (s *SessionStore) GetProfile(token string) (id, name string) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if d, ok := s.sessions[token]; ok {
+		return d.ProfileID, d.ProfileName
+	}
+	return "", ""
 }
 
 // AuthHandler handles authentication endpoints
@@ -118,17 +145,22 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Déconnexion réussie"})
 }
 
-// Status handles GET /auth/status - returns auth state for frontend
+// Status handles GET /auth/status - returns auth state + active profile for frontend
 func (h *AuthHandler) Status(c *gin.Context) {
 	token, err := c.Cookie(sessionCookieName)
 	if err != nil || !globalSessionStore.Valid(token) {
 		c.JSON(http.StatusUnauthorized, gin.H{"authenticated": false})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"authenticated": true})
+	profileID, profileName := globalSessionStore.GetProfile(token)
+	c.JSON(http.StatusOK, gin.H{
+		"authenticated": true,
+		"profile_id":    profileID,
+		"profile_name":  profileName,
+	})
 }
 
-// AuthRequired is a Gin middleware that enforces authentication
+// AuthRequired is a Gin middleware that enforces authentication and injects session info into context
 func AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := c.Cookie(sessionCookieName)
@@ -137,6 +169,10 @@ func AuthRequired() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		profileID, profileName := globalSessionStore.GetProfile(token)
+		c.Set("session_token", token)
+		c.Set("profile_id", profileID)
+		c.Set("profile_name", profileName)
 		c.Next()
 	}
 }
