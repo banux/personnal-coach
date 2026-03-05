@@ -176,12 +176,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProgramStore } from '../stores/program.js'
+import { useAuthStore } from '../stores/auth.js'
 
 const router = useRouter()
 const store = useProgramStore()
+const authStore = useAuthStore()
 const showFeedback = ref(false)
 
 const form = reactive({
@@ -209,6 +211,33 @@ const form = reactive({
 
 // Tracks weight text inputs per equipment type
 const equipmentWeights = reactive({})
+
+// Pre-fill form when profile has saved person data
+function applyPersonData(data) {
+  if (!data) return
+  if (data.name) form.person.name = data.name
+  if (data.age) form.person.age = data.age
+  if (data.weight) form.person.weight = data.weight
+  if (data.height) form.person.height = data.height
+  if (data.sex) form.person.sex = data.sex
+  if (data.level) form.person.level = data.level
+  if (data.goals && data.goals.length > 0) form.person.goals = [...data.goals]
+  if (data.description) form.person.description = data.description
+  if (data.equipment_items && data.equipment_items.length > 0) {
+    form.person.equipment = data.equipment_items.map(e => e.type)
+    for (const item of data.equipment_items) {
+      if (item.weights && item.weights.length > 0) {
+        equipmentWeights[item.type] = item.weights.join(', ')
+      }
+    }
+  } else if (data.equipment && data.equipment.length > 0) {
+    form.person.equipment = [...data.equipment]
+  }
+}
+
+// Apply immediately if already loaded, otherwise watch for it
+applyPersonData(authStore.personData)
+watch(() => authStore.personData, (data) => applyPersonData(data))
 
 const availableGoals = [
   { value: 'weight_loss', label: '⚖️ Perte de poids' },

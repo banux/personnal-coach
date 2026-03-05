@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -47,6 +48,22 @@ func (h *ProgramHandler) GenerateProgram(c *gin.Context) {
 		req.Person.ID = uuid.New().String()
 	}
 
+	profileID := c.GetString("profile_id")
+
+	// Load last program for this profile to enable week-over-week progression
+	prevProgram, err := h.db.GetLastProgramForProfile(profileID)
+	if err != nil {
+		// Non-fatal: log and continue without previous context
+		log.Printf("Warning: could not load previous program for profile %s: %v", profileID, err)
+	}
+	if prevProgram != nil {
+		req.PreviousProgram = prevProgram
+		// Advance week number automatically
+		if req.WeekNumber == 0 {
+			req.WeekNumber = prevProgram.WeekNumber + 1
+		}
+	}
+
 	program, err := h.claude.GenerateProgram(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to generate program: %v", err)})
@@ -55,12 +72,19 @@ func (h *ProgramHandler) GenerateProgram(c *gin.Context) {
 
 	program.ID = uuid.New().String()
 	program.PersonID = req.Person.ID
-	program.ProfileID = c.GetString("profile_id")
+	program.ProfileID = profileID
 	program.GeneratedAt = time.Now()
 
 	if err := h.db.SaveProgram(*program); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to save program: %v", err)})
 		return
+	}
+
+	// Auto-save person data to profile so it's pre-filled next time
+	if profileID != "" {
+		if saveErr := h.db.UpdateProfilePerson(profileID, req.Person); saveErr != nil {
+			log.Printf("Warning: could not save person data to profile %s: %v", profileID, saveErr)
+		}
 	}
 
 	c.JSON(http.StatusOK, models.GenerateResponse{

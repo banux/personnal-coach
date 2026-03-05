@@ -106,7 +106,7 @@ func (db *DB) DeleteProgram(id string) error {
 	return nil
 }
 
-// SaveProfile inserts a new profile. Returns ErrNotFound if a profile with the same name exists.
+// SaveProfile inserts a new profile.
 func (db *DB) SaveProfile(p *models.Profile) error {
 	if p.ID == "" {
 		p.ID = uuid.New().String()
@@ -114,19 +114,44 @@ func (db *DB) SaveProfile(p *models.Profile) error {
 	if p.CreatedAt.IsZero() {
 		p.CreatedAt = time.Now()
 	}
+	personDataJSON := "{}"
+	if p.PersonData != nil {
+		b, err := json.Marshal(p.PersonData)
+		if err != nil {
+			return fmt.Errorf("marshal person_data: %w", err)
+		}
+		personDataJSON = string(b)
+	}
 	_, err := db.Exec(
-		`INSERT INTO profiles (id, name, created_at) VALUES (?, ?, ?)`,
-		p.ID, p.Name, p.CreatedAt.UTC().Format(time.RFC3339),
+		`INSERT INTO profiles (id, name, person_data, created_at) VALUES (?, ?, ?, ?)`,
+		p.ID, p.Name, personDataJSON, p.CreatedAt.UTC().Format(time.RFC3339),
 	)
 	return err
 }
 
-// GetProfile fetches a profile by ID.
+// UpdateProfilePerson saves (or overwrites) the fitness data attached to a profile.
+func (db *DB) UpdateProfilePerson(profileID string, person models.Person) error {
+	b, err := json.Marshal(person)
+	if err != nil {
+		return fmt.Errorf("marshal person_data: %w", err)
+	}
+	res, err := db.Exec(`UPDATE profiles SET person_data = ? WHERE id = ?`, string(b), profileID)
+	if err != nil {
+		return fmt.Errorf("update person_data: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// GetProfile fetches a profile by ID (includes person_data).
 func (db *DB) GetProfile(id string) (*models.Profile, error) {
 	var p models.Profile
-	var createdAt string
-	err := db.QueryRow(`SELECT id, name, created_at FROM profiles WHERE id = ?`, id).
-		Scan(&p.ID, &p.Name, &createdAt)
+	var createdAt, personDataJSON string
+	err := db.QueryRow(`SELECT id, name, person_data, created_at FROM profiles WHERE id = ?`, id).
+		Scan(&p.ID, &p.Name, &personDataJSON, &createdAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -134,12 +159,18 @@ func (db *DB) GetProfile(id string) (*models.Profile, error) {
 		return nil, fmt.Errorf("query profile: %w", err)
 	}
 	p.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
+	if personDataJSON != "" && personDataJSON != "{}" {
+		var person models.Person
+		if err := json.Unmarshal([]byte(personDataJSON), &person); err == nil {
+			p.PersonData = &person
+		}
+	}
 	return &p, nil
 }
 
 // ListProfiles returns all profiles ordered by creation date.
 func (db *DB) ListProfiles() ([]models.Profile, error) {
-	rows, err := db.Query(`SELECT id, name, created_at FROM profiles ORDER BY created_at ASC`)
+	rows, err := db.Query(`SELECT id, name, person_data, created_at FROM profiles ORDER BY created_at ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("query profiles: %w", err)
 	}
@@ -148,12 +179,43 @@ func (db *DB) ListProfiles() ([]models.Profile, error) {
 	var profiles []models.Profile
 	for rows.Next() {
 		var p models.Profile
-		var createdAt string
-		if err := rows.Scan(&p.ID, &p.Name, &createdAt); err != nil {
+		var createdAt, personDataJSON string
+		if err := rows.Scan(&p.ID, &p.Name, &personDataJSON, &createdAt); err != nil {
 			return nil, fmt.Errorf("scan profile: %w", err)
 		}
 		p.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
+		if personDataJSON != "" && personDataJSON != "{}" {
+			var person models.Person
+			if err := json.Unmarshal([]byte(personDataJSON), &person); err == nil {
+				p.PersonData = &person
+			}
+		}
 		profiles = append(profiles, p)
 	}
 	return profiles, rows.Err()
+}
+
+// GetLastProgramForProfile returns the most recently generated program for a profile, or nil.
+func (db *DB) GetLastProgramForProfile(profileID string) (*models.Program, error) {
+	if profileID == "" {
+		return nil, nil
+	}
+	var payload string
+	err := db.QueryRow(`
+		SELECT payload FROM programs
+		WHERE profile_id = ?
+		ORDER BY created_at DESC
+		LIMIT 1
+	`, profileID).Scan(&payload)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("query last program: %w", err)
+	}
+	var p models.Program
+	if err := json.Unmarshal([]byte(payload), &p); err != nil {
+		return nil, fmt.Errorf("unmarshal last program: %w", err)
+	}
+	return &p, nil
 }

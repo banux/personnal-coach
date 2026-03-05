@@ -61,7 +61,7 @@ func runHTTPServer() {
 
 	// Health check (no auth required)
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok", "service": "personal-coach", "version": "1.6.0"})
+		c.JSON(200, gin.H{"status": "ok", "service": "personal-coach", "version": "1.7.0"})
 	})
 
 	// Protected API routes
@@ -81,6 +81,8 @@ func runHTTPServer() {
 			profiles.GET("", profileHandler.List)
 			profiles.POST("", profileHandler.Create)
 			profiles.POST("/select", profileHandler.Select)
+			profiles.GET("/:id/person", profileHandler.GetPersonData)
+			profiles.PUT("/:id/person", profileHandler.UpdatePersonData)
 		}
 	}
 
@@ -92,7 +94,7 @@ func runHTTPServer() {
 		port = "8080"
 	}
 
-	log.Printf("Personal Coach server v1.6.0 starting on port %s", port)
+	log.Printf("Personal Coach server v1.7.0 starting on port %s", port)
 	log.Printf("Frontend: http://localhost:%s", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)

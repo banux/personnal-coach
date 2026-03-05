@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -72,5 +73,39 @@ func (h *ProfileHandler) Select(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"profile_id":   profile.ID,
 		"profile_name": profile.Name,
+		"person_data":  profile.PersonData,
 	})
+}
+
+// GetPersonData handles GET /api/profiles/:id/person — returns saved fitness data for a profile
+func (h *ProfileHandler) GetPersonData(c *gin.Context) {
+	id := c.Param("id")
+	profile, err := h.db.GetProfile(id)
+	if errors.Is(err, database.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Profil non trouvé"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur base de données"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"person_data": profile.PersonData})
+}
+
+// UpdatePersonData handles PUT /api/profiles/:id/person — persists fitness data to a profile
+func (h *ProfileHandler) UpdatePersonData(c *gin.Context) {
+	id := c.Param("id")
+	var person models.Person
+	if err := c.ShouldBindJSON(&person); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Données invalides"})
+		return
+	}
+	if err := h.db.UpdateProfilePerson(id, person); errors.Is(err, database.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Profil non trouvé"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur base de données"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Données sauvegardées"})
 }

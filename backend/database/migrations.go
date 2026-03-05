@@ -49,6 +49,13 @@ ALTER TABLE programs ADD COLUMN profile_id TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS idx_programs_profile_id ON programs(profile_id);
 `,
 	},
+	{
+		version: 3,
+		sql: `
+-- Add person_data to profiles: persists fitness context & equipment per user
+ALTER TABLE profiles ADD COLUMN person_data TEXT NOT NULL DEFAULT '{}';
+`,
+	},
 }
 
 // migrate applies all pending migrations using a simple version-tracking table.

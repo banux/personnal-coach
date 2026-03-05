@@ -159,6 +159,39 @@ AJUSTEMENTS REQUIS: Adapte le volume et l'intensité selon ce ressenti.`,
 		))
 	}
 
+	// Include previous week's program so Claude can apply progressive overload
+	if req.PreviousProgram != nil {
+		sb.WriteString(fmt.Sprintf(`
+
+PROGRAMME DE LA SEMAINE PRÉCÉDENTE (semaine %d/%d — objectif: %s):
+Utilise ce programme comme base pour assurer une progression logique (surcharge progressive).
+Pour chaque exercice, augmente légèrement les charges, le volume ou réduis les temps de repos selon le niveau de fatigue indiqué.`,
+			req.PreviousProgram.WeekNumber,
+			req.PreviousProgram.TotalWeeks,
+			req.PreviousProgram.Objective,
+		))
+		for _, day := range req.PreviousProgram.Days {
+			sb.WriteString(fmt.Sprintf("\n\nJour %d — %s (%s):", day.Day, day.Name, day.Focus))
+			for _, block := range day.Blocks {
+				sb.WriteString(fmt.Sprintf("\n  [%s]", block.Name))
+				for _, ex := range block.Exercises {
+					sb.WriteString(fmt.Sprintf("\n    - %s: %d×%s @ %s", ex.Name, ex.Sets, ex.Reps, ex.Intensity))
+					if ex.Tempo != "" {
+						sb.WriteString(fmt.Sprintf(", tempo %s", ex.Tempo))
+					}
+				}
+			}
+		}
+		sb.WriteString("\n")
+	}
+
+	if req.WeekNumber > 0 {
+		sb.WriteString(fmt.Sprintf(`
+
+NUMÉRO DE SEMAINE: Cette séance est la semaine %d du programme.
+Dans le JSON de réponse, mets "week_number": %d.`, req.WeekNumber, req.WeekNumber))
+	}
+
 	sb.WriteString(`
 
 Réponds avec un JSON valide correspondant EXACTEMENT à cette structure:
@@ -227,6 +260,11 @@ func parseProgramResponse(responseText string, req models.GenerateRequest) (*mod
 	}
 	if program.TotalWeeks == 0 {
 		program.TotalWeeks = req.Weeks
+	}
+	if req.WeekNumber > 0 {
+		program.WeekNumber = req.WeekNumber
+	} else if program.WeekNumber == 0 {
+		program.WeekNumber = 1
 	}
 	if req.Feedback != nil {
 		program.Feedback = req.Feedback

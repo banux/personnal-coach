@@ -13,6 +13,8 @@
 - [x] Pour les equipements il faut pouvoir ajouter les types avec les poids associés et pouvoir en indiquer plusieurs.
 - [x] Ajoute le sexe de la personne
 - [x] Gére le multi utilisateur avec le même mot de passe d'authentification
+- [x] Le contexte et les equipements sont liés à l'utilisateur
+- [x] Le programme est généré pour la semaine à la suite de la semaine précédente et des retours de la semaine précédente
 
 ## Medium Priority
 - [x] Add error handling and validation (handlers validate required fields + bounds)
@@ -57,5 +59,5 @@
 - Tests: cd backend && GOROOT=/home/banux/go GOPATH=/home/banux/go go test ./...
 - Docker: docker-compose up -d (requires ANTHROPIC_API_KEY in .env)
 - DATA_DIR env var controls SQLite file location (default: ./data/coach.db)
-- Version: 1.6.0
+- Version: 1.7.0
 - ALL REQUIREMENTS IMPLEMENTED — project complete

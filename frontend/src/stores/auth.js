@@ -9,6 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
   const error = ref(null)
   const profile = ref(null) // { id, name } or null
+  const personData = ref(null) // saved fitness data for the active profile
 
   async function checkStatus() {
     try {
@@ -16,12 +17,15 @@ export const useAuthStore = defineStore('auth', () => {
       authenticated.value = res.data.authenticated === true
       if (res.data.profile_id) {
         profile.value = { id: res.data.profile_id, name: res.data.profile_name }
+        await loadPersonData(res.data.profile_id)
       } else {
         profile.value = null
+        personData.value = null
       }
     } catch {
       authenticated.value = false
       profile.value = null
+      personData.value = null
     }
   }
 
@@ -32,6 +36,7 @@ export const useAuthStore = defineStore('auth', () => {
       await axios.post(`${API_BASE}/auth/login`, { password }, { withCredentials: true })
       authenticated.value = true
       profile.value = null
+      personData.value = null
     } catch (err) {
       error.value = err.response?.data?.error || 'Erreur de connexion'
       throw err
@@ -46,13 +51,25 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       authenticated.value = false
       profile.value = null
+      personData.value = null
     }
   }
 
   async function selectProfile(id) {
     const res = await axios.post(`${API_BASE}/api/profiles/select`, { id }, { withCredentials: true })
     profile.value = { id: res.data.profile_id, name: res.data.profile_name }
+    // person_data is returned directly in the select response (optimization)
+    personData.value = res.data.person_data || null
   }
 
-  return { authenticated, loading, error, profile, checkStatus, login, logout, selectProfile }
+  async function loadPersonData(profileId) {
+    try {
+      const res = await axios.get(`${API_BASE}/api/profiles/${profileId}/person`, { withCredentials: true })
+      personData.value = res.data.person_data || null
+    } catch {
+      personData.value = null
+    }
+  }
+
+  return { authenticated, loading, error, profile, personData, checkStatus, login, logout, selectProfile }
 })

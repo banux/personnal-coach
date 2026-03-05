@@ -26,9 +26,10 @@ type Person struct {
 
 // Profile represents a named user in the multi-user system (all share the same app password)
 type Profile struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	CreatedAt  time.Time `json:"created_at"`
+	PersonData *Person   `json:"person_data,omitempty"` // persisted fitness context & equipment
 }
 
 // Exercise represents a single exercise in a workout
@@ -105,10 +106,12 @@ type TimerProgram struct {
 
 // GenerateRequest is the API request for generating a program
 type GenerateRequest struct {
-	Person   Person          `json:"person"`
-	Weeks    int             `json:"weeks"`
-	DaysPerWeek int          `json:"days_per_week"`
-	Feedback *WeeklyFeedback `json:"feedback,omitempty"`
+	Person          Person          `json:"person"`
+	Weeks           int             `json:"weeks"`
+	DaysPerWeek     int             `json:"days_per_week"`
+	Feedback        *WeeklyFeedback `json:"feedback,omitempty"`
+	PreviousProgram *Program        `json:"-"` // injected by handler, not from client
+	WeekNumber      int             `json:"-"` // calculated from previous program
 }
 
 // GenerateResponse is the API response after generating a program
