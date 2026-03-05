@@ -2,17 +2,25 @@ package models
 
 import "time"
 
+// EquipmentItem represents a piece of equipment with optional available weights
+type EquipmentItem struct {
+	Type    string    `json:"type"`
+	Weights []float64 `json:"weights,omitempty"` // available weights in kg
+}
+
 // Person represents a user of the personal coach app
 type Person struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Age       int       `json:"age"`
-	Weight    float64   `json:"weight"`    // kg
-	Height    float64   `json:"height"`    // cm
-	Level     string    `json:"level"`     // beginner, intermediate, advanced
-	Goals     []string  `json:"goals"`     // weight_loss, muscle_gain, endurance, etc.
-	Equipment []string  `json:"equipment"` // barbell, dumbbell, machine, bodyweight, etc.
-	CreatedAt time.Time `json:"created_at"`
+	ID             string          `json:"id"`
+	Name           string          `json:"name"`
+	Age            int             `json:"age"`
+	Weight         float64         `json:"weight"`    // kg
+	Height         float64         `json:"height"`    // cm
+	Level          string          `json:"level"`     // beginner, intermediate, advanced
+	Goals          []string        `json:"goals"`     // weight_loss, muscle_gain, endurance, etc.
+	Equipment      []string        `json:"equipment,omitempty"` // backward compat: type names only
+	EquipmentItems []EquipmentItem `json:"equipment_items,omitempty"` // equipment with weight details
+	Description    string          `json:"description,omitempty"` // additional context (injuries, preferences, etc.)
+	CreatedAt      time.Time       `json:"created_at"`
 }
 
 // Exercise represents a single exercise in a workout

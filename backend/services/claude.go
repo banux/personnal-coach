@@ -95,19 +95,43 @@ PROFIL:
 - Poids: %.1f kg
 - Taille: %.0f cm
 - Niveau: %s
-- Objectifs: %s
-- Équipement disponible: %s
-
-PROGRAMME DEMANDÉ:
-- Durée: %d semaine(s)
-- Fréquence: %d jours par semaine`,
+- Objectifs: %s`,
 		req.Person.Name,
 		req.Person.Age,
 		req.Person.Weight,
 		req.Person.Height,
 		req.Person.Level,
 		strings.Join(req.Person.Goals, ", "),
-		strings.Join(req.Person.Equipment, ", "),
+	))
+
+	// Equipment: use detailed items if available, else fall back to simple list
+	if len(req.Person.EquipmentItems) > 0 {
+		var equipParts []string
+		for _, item := range req.Person.EquipmentItems {
+			if len(item.Weights) > 0 {
+				wStrs := make([]string, len(item.Weights))
+				for i, w := range item.Weights {
+					wStrs[i] = fmt.Sprintf("%.4gkg", w)
+				}
+				equipParts = append(equipParts, fmt.Sprintf("%s (%s)", item.Type, strings.Join(wStrs, ", ")))
+			} else {
+				equipParts = append(equipParts, item.Type)
+			}
+		}
+		sb.WriteString(fmt.Sprintf("\n- Équipement disponible: %s", strings.Join(equipParts, ", ")))
+	} else {
+		sb.WriteString(fmt.Sprintf("\n- Équipement disponible: %s", strings.Join(req.Person.Equipment, ", ")))
+	}
+
+	if req.Person.Description != "" {
+		sb.WriteString(fmt.Sprintf("\n- Contexte supplémentaire: %s", req.Person.Description))
+	}
+
+	sb.WriteString(fmt.Sprintf(`
+
+PROGRAMME DEMANDÉ:
+- Durée: %d semaine(s)
+- Fréquence: %d jours par semaine`,
 		req.Weeks,
 		req.DaysPerWeek,
 	))

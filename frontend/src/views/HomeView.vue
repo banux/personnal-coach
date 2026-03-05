@@ -44,6 +44,17 @@
           </div>
         </div>
 
+        <!-- Additional context / description -->
+        <div>
+          <label class="label">Contexte supplémentaire <span class="text-gray-400 font-normal">(optionnel)</span></label>
+          <textarea
+            v-model="form.person.description"
+            class="input-field"
+            rows="3"
+            placeholder="Blessures, contraintes médicales, préférences particulières, objectifs spécifiques, historique sportif..."
+          ></textarea>
+        </div>
+
         <!-- Goals -->
         <div>
           <label class="label">Objectifs</label>
@@ -65,18 +76,32 @@
         <!-- Equipment -->
         <div>
           <label class="label">Équipement disponible</label>
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-2 mb-3">
             <button
               v-for="eq in availableEquipment"
               :key="eq.value"
               type="button"
               @click="toggleEquipment(eq.value)"
-              :class="['tag py-1.5 px-3 text-sm cursor-pointer transition-colors', form.person.equipment.includes(eq.value)
+              :class="['tag py-1.5 px-3 text-sm cursor-pointer transition-colors', isEquipmentSelected(eq.value)
                 ? 'bg-green-100 text-green-800 border border-green-300'
                 : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200']"
             >
               {{ eq.label }}
             </button>
+          </div>
+
+          <!-- Weight inputs for selected equipment that supports weights -->
+          <div v-if="selectedEquipmentWithWeights.length > 0" class="space-y-2 mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p class="text-xs text-gray-500 mb-2">Précisez les poids disponibles (kg, séparés par virgule) :</p>
+            <div v-for="eq in selectedEquipmentWithWeights" :key="eq.value" class="flex items-center gap-3">
+              <span class="text-sm text-gray-700 w-36 shrink-0">{{ eq.label }}</span>
+              <input
+                v-model="equipmentWeights[eq.value]"
+                type="text"
+                class="input-field py-1.5 text-sm"
+                :placeholder="eq.placeholder"
+              />
+            </div>
           </div>
         </div>
 
@@ -142,7 +167,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProgramStore } from '../stores/program.js'
 
@@ -159,6 +184,7 @@ const form = reactive({
     level: 'intermediate',
     goals: [],
     equipment: ['bodyweight'],
+    description: '',
   },
   days_per_week: 3,
   weeks: 4,
@@ -171,6 +197,9 @@ const form = reactive({
   }
 })
 
+// Tracks weight text inputs per equipment type
+const equipmentWeights = reactive({})
+
 const availableGoals = [
   { value: 'weight_loss', label: '⚖️ Perte de poids' },
   { value: 'muscle_gain', label: '💪 Prise de masse' },
@@ -182,13 +211,27 @@ const availableGoals = [
 
 const availableEquipment = [
   { value: 'bodyweight', label: '🤸 Poids du corps' },
-  { value: 'dumbbell', label: '🏋️ Haltères' },
-  { value: 'barbell', label: '⚡ Barre' },
-  { value: 'machine', label: '🔧 Machines' },
-  { value: 'kettlebell', label: '🔔 Kettlebell' },
+  { value: 'dumbbell', label: '🏋️ Haltères', placeholder: 'ex: 5, 10, 15, 20' },
+  { value: 'barbell', label: '⚡ Barre', placeholder: 'ex: 20 (barre) + disques 5, 10, 20' },
+  { value: 'machine', label: '🔧 Machines', placeholder: 'ex: 20, 40, 60, 80' },
+  { value: 'kettlebell', label: '🔔 Kettlebell', placeholder: 'ex: 8, 12, 16, 20' },
   { value: 'bands', label: '↔️ Élastiques' },
   { value: 'pullup_bar', label: '⬆️ Barre de traction' },
 ]
+
+// Equipment types that have meaningful weight configurations
+const weightedEquipmentTypes = new Set(['dumbbell', 'barbell', 'machine', 'kettlebell'])
+
+// Selected equipment types that support weight detail
+const selectedEquipmentWithWeights = computed(() =>
+  availableEquipment.filter(eq =>
+    weightedEquipmentTypes.has(eq.value) && form.person.equipment.includes(eq.value)
+  )
+)
+
+function isEquipmentSelected(value) {
+  return form.person.equipment.includes(value)
+}
 
 function toggleGoal(value) {
   const idx = form.person.goals.indexOf(value)
@@ -198,15 +241,36 @@ function toggleGoal(value) {
 
 function toggleEquipment(value) {
   const idx = form.person.equipment.indexOf(value)
-  if (idx >= 0) form.person.equipment.splice(idx, 1)
-  else form.person.equipment.push(value)
+  if (idx >= 0) {
+    form.person.equipment.splice(idx, 1)
+    delete equipmentWeights[value]
+  } else {
+    form.person.equipment.push(value)
+  }
+}
+
+function parseWeights(str) {
+  if (!str) return []
+  return str
+    .split(',')
+    .map(w => parseFloat(w.trim()))
+    .filter(w => !isNaN(w) && w > 0)
 }
 
 async function handleSubmit() {
   if (!form.person.name.trim()) return
 
+  // Build equipment_items from selected equipment + weight inputs
+  const equipmentItems = form.person.equipment.map(type => {
+    const weights = parseWeights(equipmentWeights[type])
+    return weights.length > 0 ? { type, weights } : { type }
+  })
+
   const payload = {
-    person: { ...form.person },
+    person: {
+      ...form.person,
+      equipment_items: equipmentItems,
+    },
     days_per_week: form.days_per_week,
     weeks: form.weeks,
   }

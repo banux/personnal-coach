@@ -9,6 +9,8 @@
 - [x] Docker support (Dockerfile + docker-compose.yml)
 - [x] SQLite storage with migrations (programs persist across restarts)
 - [x] Create test framework and initial tests (14 tests: 6 DB + 8 timer service, all passing)
+- [x] On doit pouvoir remplir du contexte suplémentaire dans la description associé à la personne.
+- [x] Pour les equipements il faut pouvoir ajouter les types avec les poids associés et pouvoir en indiquer plusieurs.
 
 ## Medium Priority
 - [x] Add error handling and validation (handlers validate required fields + bounds)
@@ -53,5 +55,5 @@
 - Tests: cd backend && GOROOT=/home/banux/go GOPATH=/home/banux/go go test ./...
 - Docker: docker-compose up -d (requires ANTHROPIC_API_KEY in .env)
 - DATA_DIR env var controls SQLite file location (default: ./data/coach.db)
-- Version: 1.4.0
+- Version: 1.5.0
 - ALL REQUIREMENTS IMPLEMENTED — project complete
